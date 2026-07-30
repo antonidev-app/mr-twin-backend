@@ -11,7 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // These are internal utility routes with no UI/form yet (exercised
+        // via curl/Postman until the backoffice exists in Fase 2) — exempt
+        // from CSRF so manual testing doesn't need a token dance. Revisit
+        // once these are gated behind admin auth.
+        $middleware->validateCsrfTokens(except: [
+            'accurate/databases/select',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
