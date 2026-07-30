@@ -40,7 +40,7 @@ return [
         'client_secret' => env('ACCURATE_CLIENT_SECRET'),
         'redirect_uri' => env('ACCURATE_REDIRECT_URI'),
         'account_base_url' => env('ACCURATE_ACCOUNT_BASE_URL', 'https://account.accurate.id'),
-        'scopes' => env('ACCURATE_SCOPES', 'item_view'),
+        'scopes' => env('ACCURATE_SCOPES', 'item_view item_category_view'),
         'token_expiry_buffer_seconds' => (int) env('ACCURATE_TOKEN_EXPIRY_BUFFER', 300),
         'session_ttl_minutes' => (int) env('ACCURATE_SESSION_TTL_MINUTES', 25),
     ],
