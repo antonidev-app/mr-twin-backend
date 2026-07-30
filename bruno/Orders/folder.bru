@@ -1,0 +1,12 @@
+meta {
+  name: Orders
+  seq: 4
+}
+
+docs {
+  Requires a customer bearer token (run "Customer Auth > Register" or
+  "Login" first — {{customer_token}} gets set automatically). Guarded
+  by both auth:sanctum and a custom `customer` middleware that rejects
+  admin (users table) tokens with 403, since Sanctum's guard alone
+  can't tell the two apart.
+}

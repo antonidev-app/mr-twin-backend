@@ -1,0 +1,17 @@
+meta {
+  name: 4. Connection Status
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/accurate/status
+  body: none
+  auth: none
+}
+
+docs {
+  Reports connected (bool), id_db, db_alias, token_expires_at,
+  last_refreshed_at, and last_refresh_error. Safe to call anytime to
+  check whether the OAuth connection is healthy or needs reconnecting.
+}

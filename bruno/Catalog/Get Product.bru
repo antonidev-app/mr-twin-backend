@@ -1,0 +1,17 @@
+meta {
+  name: Get Product
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/catalog/products/{{product_id}}
+  body: none
+  auth: none
+}
+
+docs {
+  {{product_id}} is a product_display.id (NOT an Accurate item id or
+  SKU) — grab one from "List Products" first. Returns 404 if the
+  product doesn't exist or is_published=false.
+}

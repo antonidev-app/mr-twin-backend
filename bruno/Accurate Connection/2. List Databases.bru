@@ -1,0 +1,19 @@
+meta {
+  name: 2. List Databases
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/accurate/databases
+  body: none
+  auth: none
+}
+
+docs {
+  Lists the Accurate databases (companies) accessible to the connected
+  account. Requires step 1 (Connect) to have been completed first.
+
+  Note the "id" of the database you want (e.g. 79304), then use it in
+  "3. Select Database".
+}

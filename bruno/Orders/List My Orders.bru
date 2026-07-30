@@ -1,0 +1,21 @@
+meta {
+  name: List My Orders
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/orders
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customer_token}}
+}
+
+docs {
+  Only ever returns orders belonging to the authenticated customer
+  (scoped via $request->user()->orders(), not a global orders table
+  scan) — there is no way to list another customer's orders.
+}

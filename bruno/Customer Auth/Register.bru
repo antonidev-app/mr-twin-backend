@@ -1,0 +1,37 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Budi Tester",
+    "email": "budi@example.com",
+    "phone": "08123456789",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setEnvVar("customer_token", res.body.token);
+  }
+}
+
+docs {
+  Creates a customer and returns a Sanctum token. The token is
+  auto-saved to {{customer_token}} so "Orders" requests can use it
+  right away without copy-pasting.
+}

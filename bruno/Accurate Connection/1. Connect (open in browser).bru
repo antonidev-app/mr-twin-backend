@@ -1,0 +1,23 @@
+meta {
+  name: 1. Connect (open in browser)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/accurate/connect
+  body: none
+  auth: none
+}
+
+docs {
+  This cannot be run from Bruno's "Send" button — it redirects to
+  Accurate's OAuth login page and needs an interactive user login,
+  then Accurate redirects back to /accurate/callback on its own.
+
+  Copy the URL above into a real browser instead:
+  {{base_url}}/accurate/connect
+
+  After logging in and approving, you'll land on /accurate/callback
+  with a JSON confirmation. Then continue with "2. List Databases".
+}

@@ -1,0 +1,31 @@
+meta {
+  name: List Products
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/catalog/products?per_page=20
+  body: none
+  auth: none
+}
+
+params:query {
+  display_category:
+  brand:
+  min_price:
+  max_price:
+  q:
+  per_page: 20
+}
+
+docs {
+  All query params are optional and combinable:
+  - display_category: exact match against product_display.display_category
+  - brand: exact match against product_display.brand
+  - min_price / max_price: filters on the underlying synced_items.unit_price
+  - q: case-insensitive search against display_name or the item's name
+  - per_page: 1-100, default 20
+
+  Paginated response (Laravel's standard paginate() shape).
+}

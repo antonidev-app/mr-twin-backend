@@ -1,0 +1,18 @@
+meta {
+  name: List Categories
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/catalog/categories
+  body: none
+  auth: none
+}
+
+docs {
+  Distinct, non-null display_category values from published products —
+  this is the admin-curated storefront taxonomy, NOT Accurate's raw
+  (deeply nested) item-category tree. Use these values as the
+  display_category filter in "List Products".
+}

@@ -1,0 +1,44 @@
+meta {
+  name: Checkout
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/orders
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customer_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "items": [
+      { "product_id": {{product_id}}, "quantity": 1 }
+    ],
+    "shipping_name": "Budi Tester",
+    "shipping_phone": "08123456789",
+    "shipping_address": "Jl. Testing No. 1, Banjarbaru"
+  }
+}
+
+docs {
+  Before creating the order, this:
+  1. Checks each product is published (product_display.is_published)
+  2. Calls Accurate's item/detail.do LIVE for each item and rejects if
+     requested quantity > availableToSell (422 "Insufficient stock")
+  3. Prices from synced_items.unit_price — never trusts a client-sent price
+
+  If Accurate itself is unreachable/erroring during the stock check,
+  returns 503 rather than silently skipping validation.
+
+  product_id here is a product_display.id (see "Catalog > List
+  Products"), not an Accurate item id or SKU.
+}

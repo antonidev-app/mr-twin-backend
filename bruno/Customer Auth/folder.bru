@@ -1,0 +1,12 @@
+meta {
+  name: Customer Auth
+  seq: 3
+}
+
+docs {
+  Storefront customer identity — completely separate from admin `users`
+  (there is no login endpoint here for admins; that's a Fase 2/backoffice
+  concern). Register and Login both return a Sanctum bearer token and
+  auto-save it into the {{customer_token}} environment variable via a
+  post-response script, so "Orders" requests work immediately after.
+}

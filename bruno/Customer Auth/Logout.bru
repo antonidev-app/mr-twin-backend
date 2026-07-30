@@ -1,0 +1,21 @@
+meta {
+  name: Logout
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customer_token}}
+}
+
+docs {
+  Revokes the current access token (the one used to authenticate this
+  very request) via currentAccessToken()->delete(). After this call,
+  {{customer_token}} is no longer valid — Login again to get a fresh one.
+}
