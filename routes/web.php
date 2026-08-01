@@ -7,13 +7,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Unauthenticated on purpose for now — no backoffice/admin auth exists yet
-// (Fase 2 of PLANNING.md). Must be gated behind admin middleware before any
-// public deploy.
+// Unauthenticated by design — these are full-page browser redirects that
+// can't carry a Bearer token, and the real gate is Accurate's own login (see
+// routes/api.php's admin group for the rest of the connection endpoints,
+// which do read/change connection state and are gated behind admin auth).
 Route::prefix('accurate')->group(function () {
     Route::get('connect', [AccurateConnectionController::class, 'redirectToAuthorize']);
     Route::get('callback', [AccurateConnectionController::class, 'handleCallback']);
-    Route::get('databases', [AccurateConnectionController::class, 'listDatabases']);
-    Route::post('databases/select', [AccurateConnectionController::class, 'selectDatabase']);
-    Route::get('status', [AccurateConnectionController::class, 'status']);
 });

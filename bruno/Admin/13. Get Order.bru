@@ -1,0 +1,20 @@
+meta {
+  name: 13. Get Order
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{base_url}}/api/admin/orders/{{order_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Any order by ID, regardless of which customer it belongs to — admin
+  isn't ownership-scoped like the customer-facing endpoint.
+}

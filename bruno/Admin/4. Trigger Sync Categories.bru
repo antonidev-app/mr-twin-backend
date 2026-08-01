@@ -1,0 +1,21 @@
+meta {
+  name: 4. Trigger Sync Categories
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/admin/sync/categories
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Dispatches SyncAccurateCategoriesJob to the queue (fast, ~150 rows,
+  but still async for consistency — `php artisan queue:work` must be
+  running).
+}

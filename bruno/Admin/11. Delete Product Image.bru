@@ -1,0 +1,31 @@
+meta {
+  name: 11. Delete Product Image
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{base_url}}/api/admin/products/{{item_id}}/images
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "url": "http://localhost:8000/storage/products/1/replace-with-a-real-filename.jpg"
+  }
+}
+
+docs {
+  Removes exactly this URL from product_display.images and deletes the
+  underlying file from the public disk (best-effort — the array update
+  still happens even if the file delete fails for some reason).
+}

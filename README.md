@@ -38,42 +38,54 @@ Then:
 php artisan migrate
 ```
 
+## Admin account
+
+There's no public admin registration — create the first one via tinker:
+
+```bash
+php artisan tinker --execute="App\Models\User::create(['name'=>'Admin','email'=>'admin@mrtwin.test','password'=>'password12345']);"
+```
+
+`POST /api/admin/login` with that email/password returns a Sanctum token. Every `/api/admin/*` route (except `login`) requires it — a `customer` token is rejected with 403 by the same polymorphic-guard reasoning as the customer-only routes (see Architecture notes).
+
 ## Connecting to Accurate
 
-The OAuth authorize step is an interactive browser login — it can't be automated or run from an API client. Order:
+The OAuth authorize step is an interactive browser login — it can't be automated or run from an API client, so it's split across an unauthenticated browser step and authenticated API steps:
 
 1. Start the server: `php artisan serve`
-2. Open `http://localhost:8000/accurate/connect` **in a real browser** (not curl/Bruno) — log in and approve. Accurate redirects back to `/accurate/callback`, which exchanges the code for a token and shows a JSON confirmation.
-3. `GET /accurate/databases` — lists the Accurate databases (companies) available to your account.
-4. `POST /accurate/databases/select` with `id_db` (and optionally `db_alias`) — picks the database and opens an API session against it.
-5. `GET /accurate/status` — confirms `connected: true` and shows token/session health.
+2. Open `http://localhost:8000/accurate/connect` **in a real browser** (not curl/Bruno) — log in and approve. Accurate redirects back to `/accurate/callback`, which exchanges the code for a token and shows a JSON confirmation. Unauthenticated by design — see Architecture notes.
+3. `GET /api/admin/accurate/databases` (admin token required) — lists the Accurate databases (companies) available to your account.
+4. `POST /api/admin/accurate/databases/select` (admin token) with `id_db` (and optionally `db_alias`) — picks the database and opens an API session against it.
+5. `GET /api/admin/accurate/status` (admin token) — confirms `connected: true` and shows token/session health.
 
-These four endpoints are documented as requests in the [Bruno collection](#api-documentation-bruno) (steps 2–4 are runnable from Bruno; step 1 has to be opened in a browser).
+These are documented as requests in the [Bruno collection](#api-documentation-bruno) (steps 3–5 need the admin token set first; step 1–2 has to be opened in a browser).
 
 Token refresh is on-demand and locked (not a blind `everyMinute()` cron) — see `app/Services/Accurate/AccurateClient.php` and PLANNING.md section 8 for why.
 
 ## Syncing data from Accurate
 
-Once connected, pull categories and items into the local mirror tables:
+Once connected, pull categories and items into the local mirror tables — either from the CLI:
 
 ```bash
 php artisan accurate:sync-categories --sync   # ~150 rows, fast
 php artisan accurate:sync-items --sync        # can be tens of thousands of rows — slow
 ```
 
-Drop `--sync` to dispatch to the queue instead of running inline (needs `php artisan queue:work`). Add `--dry-run` to fetch and print just the first page without writing anything — useful for sanity-checking field names against Accurate's real response shape before trusting a full sync.
+or on demand via `POST /api/admin/sync/categories` / `POST /api/admin/sync/items` (admin token) — these always dispatch to the queue (never run inline in the request) since a full item sync can take minutes, so `php artisan queue:work` needs to actually be running for the trigger to do anything. `GET /api/admin/sync/logs` and `GET /api/admin/sync/status` read the `sync_logs` table (`running`/`success`/`failed`, row count, error message) that every sync run — CLI or API-triggered — writes to.
+
+Drop `--sync` on the CLI form to dispatch to the queue the same way; add `--dry-run` to fetch and print just the first page without writing anything — useful for sanity-checking field names against Accurate's real response shape before trusting a full sync.
 
 Both jobs are also scheduled every 30 minutes (`routes/console.php`) once `php artisan schedule:work` (or a real cron calling `schedule:run`) is running.
 
-Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untouched by curation. Nothing is customer-visible until an admin publishes it via `product_display` (currently only doable manually through `php artisan tinker`; a proper curation UI is `mr-twin-backoffice`, not yet built).
+Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untouched by curation. Nothing is customer-visible until an admin publishes it via `product_display`, through `GET/PUT /api/admin/products/{item}` and `POST/DELETE /api/admin/products/{item}/images` (admin token) — a proper curation UI is `mr-twin-backoffice`'s job, not built in this repo.
 
 ## API documentation (Bruno)
 
 The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) collection covering every endpoint in this API — open it directly in the Bruno app (`Open Collection` → select the `bruno` folder). It's plain text and lives in git, so it stays in sync with the code instead of drifting like a wiki page would.
 
 - Select the **Local** environment (base URL `http://localhost:8000`).
-- Folders are numbered in the order you'd actually use them: **Accurate Connection** → **Catalog** → **Customer Auth** → **Orders**.
-- Running **Customer Auth › Register** or **Login** auto-saves the returned token into the `customer_token` environment variable via a post-response script — every request under **Orders** already reads `{{customer_token}}`, so there's no manual copy-pasting.
+- Folders are numbered in the order you'd actually use them: **Accurate Connection** → **Catalog** → **Customer Auth** → **Orders** → **Admin**.
+- Running **Customer Auth › Register** or **Login** auto-saves the returned token into the `customer_token` environment variable via a post-response script — every request under **Orders** already reads `{{customer_token}}`, so there's no manual copy-pasting. **Admin › Login** does the same into `admin_token`, which the rest of the **Admin** folder reads.
 - Every request has a `docs` block explaining what it does and any non-obvious behavior (why a 404 instead of 403, why `product_id` isn't an Accurate item ID, etc).
 
 ### Endpoint summary
@@ -82,9 +94,6 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 |---|---|---|---|
 | GET | `/accurate/connect` | none | browser-only, starts OAuth |
 | GET | `/accurate/callback` | none | OAuth redirect target |
-| GET | `/accurate/databases` | none | list Accurate databases |
-| POST | `/accurate/databases/select` | none | pick database + open session |
-| GET | `/accurate/status` | none | connection health |
 | GET | `/api/catalog/products` | none | filter: `display_category`, `brand`, `min_price`, `max_price`, `q` |
 | GET | `/api/catalog/products/{id}` | none | 404 if unpublished |
 | GET | `/api/catalog/categories` | none | distinct `display_category` in use |
@@ -94,16 +103,30 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 | GET | `/api/orders` | customer token | own orders only |
 | GET | `/api/orders/{id}` | customer token | 404 if not the owner |
 | POST | `/api/orders` | customer token | checkout — live Accurate stock check, server-side pricing |
+| POST | `/api/admin/login` | none | returns Sanctum token |
+| POST | `/api/admin/logout` | admin token | revokes current token |
+| GET | `/api/admin/accurate/databases` | admin token | list Accurate databases |
+| POST | `/api/admin/accurate/databases/select` | admin token | pick database + open session |
+| GET | `/api/admin/accurate/status` | admin token | connection health |
+| POST | `/api/admin/sync/items`, `/categories` | admin token | dispatch sync job to the queue |
+| GET | `/api/admin/sync/logs`, `/status` | admin token | `sync_logs` history / latest-per-type summary |
+| GET | `/api/admin/products` | admin token | all `synced_items` incl. unpublished, filter `q`/`is_published`/`suspended`/`item_type` |
+| GET/PUT | `/api/admin/products/{item}` | admin token | curation fields (`is_published`, `display_name`, ...) — upserts `product_display` |
+| POST/DELETE | `/api/admin/products/{item}/images` | admin token | multipart upload / remove by URL, disk `public` |
+| GET | `/api/admin/orders` | admin token | all orders, any customer, filter `status` |
+| GET/PATCH | `/api/admin/orders/{order}` | admin token | `PATCH` updates `status` (`pending`/`completed`/`cancelled`) |
 
-"Admin-only" endpoints (`/accurate/*`) are currently unauthenticated — there's no backoffice/admin auth yet (Fase 2). Fine for local/manual use, but must be gated before any public deploy. "customer token" means a Sanctum bearer token issued to the `customers` table specifically — an admin `users` token is explicitly rejected (403) by a dedicated `customer` middleware, since Sanctum's `auth:sanctum` guard alone can't tell the two apart.
+"customer token"/"admin token" mean a Sanctum bearer token issued to the `customers`/`users` table respectively — a token from the wrong table is rejected (403) by a dedicated `customer`/`admin` middleware, since Sanctum's `auth:sanctum` guard alone can't tell the two apart (it's polymorphic — it resolves whichever model actually owns the token, regardless of which guard name gated the route).
 
 ## Architecture notes
 
 - **`synced_items` / `synced_categories`** — raw, unfiltered mirrors of Accurate's `item/list.do` / `item-category/list.do`, rewritten on every sync. Never written back to Accurate.
 - **`product_display`** — the curation layer (1:1 with `synced_items`). `is_published` gates storefront visibility; `display_category`/`brand` are admin-curated overrides, deliberately decoupled from Accurate's raw (deeply nested, ERP-messy) category tree.
 - **`local_orders` / `local_order_items`** — 100% local. Checkout never calls any Accurate write endpoint (`save.do`/`delete.do`); it only reads live stock via `item/detail.do` before creating the order, and snapshots item name/SKU/price at order time so historical orders don't shift if the synced item changes later.
-- **`customers` vs `users`** — intentionally separate tables/models. `users` is the admin/backoffice identity; `customers` is the storefront identity. Both can hold Sanctum tokens; a custom `EnsureCustomer` middleware is what actually keeps the two from being usable interchangeably.
+- **`customers` vs `users`** — intentionally separate tables/models. `users` is the admin/backoffice identity; `customers` is the storefront identity. Both can hold Sanctum tokens; dedicated `EnsureCustomer`/`EnsureAdmin` middleware is what actually keeps the two from being usable interchangeably.
 - **JSON error responses are always `{"message": "..."}`**, regardless of `APP_DEBUG` — `bootstrap/app.php`'s `withExceptions` strips Laravel's default `exception`/`file`/`trace` keys before they reach any API client, since leaking internal file paths and stack traces to a public API is a real issue, not just a cosmetic one. Full traces still land in `storage/logs/laravel.log` as usual.
+- **`/accurate/connect` and `/accurate/callback` are the only unauthenticated routes left** — deliberately, not an oversight. They're full-page browser redirects (can't carry a Bearer token), and the real access control is Accurate's own login page: hitting either route without a genuine Accurate login gets you nothing. Every other Accurate-connection endpoint (`databases`, `databases/select`, `status`) moved under `/api/admin/*` once admin auth existed to gate them.
+- **`sync_logs`** — every sync run (scheduled, CLI, or admin-triggered) writes one row (`running` → `success`/`failed`, count, error message). `SyncAccurateItemsJob`/`SyncAccurateCategoriesJob` wrap their existing logic in try/catch to update it, rethrowing so queue retry/failure behavior is unaffected.
 
 Full rationale for all of the above lives in [`PLANNING.md`](../PLANNING.md).
 

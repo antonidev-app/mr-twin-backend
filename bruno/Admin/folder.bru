@@ -1,0 +1,13 @@
+meta {
+  name: Admin
+  seq: 5
+}
+
+docs {
+  mr-twin-backoffice's API surface: sync trigger/log, catalog curation
+  (publish/unpublish, images), and cross-customer order management.
+  Login first — the token auto-saves to {{admin_token}}, which every
+  other request in this folder (and the gated requests in Accurate
+  Connection) reads. A customer token gets a 403 here, not a 401 —
+  see EnsureAdmin middleware.
+}

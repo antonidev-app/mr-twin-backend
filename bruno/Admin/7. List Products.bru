@@ -1,0 +1,31 @@
+meta {
+  name: 7. List Products
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/admin/products?per_page=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+params:query {
+  q:
+  is_published:
+  suspended:
+  item_type:
+  per_page: 20
+}
+
+docs {
+  Unlike the public /api/catalog/products, this lists every
+  synced_items row (published or not) with its product_display
+  alongside — admin needs to see the raw Accurate data to decide what
+  to curate. is_published=false matches items with NO product_display
+  row yet OR an unpublished one, not just an explicit false.
+}

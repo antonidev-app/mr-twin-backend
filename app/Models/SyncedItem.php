@@ -18,4 +18,9 @@ class SyncedItem extends Model
             'last_synced_at' => 'datetime',
         ];
     }
+
+    public function productDisplay()
+    {
+        return $this->hasOne(ProductDisplay::class, 'item_id');
+    }
 }

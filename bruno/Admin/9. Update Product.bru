@@ -1,0 +1,37 @@
+meta {
+  name: 9. Update Product
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{base_url}}/api/admin/products/{{item_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "is_published": true,
+    "display_name": "Nama tampilan opsional",
+    "description": "Deskripsi produk untuk storefront",
+    "display_category": "Kategori Storefront",
+    "brand": "Nama Brand",
+    "sort_order": 0
+  }
+}
+
+docs {
+  Upserts product_display for this synced_items row (creates it on
+  first curation, updates it after). display_category is a free-text
+  admin override — deliberately decoupled from Accurate's raw category
+  tree, which is deeply nested ERP data not fit for customer display.
+}

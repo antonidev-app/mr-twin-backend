@@ -1,0 +1,22 @@
+meta {
+  name: 3. Trigger Sync Items
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/admin/sync/items
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Dispatches SyncAccurateItemsJob to the queue — always async, never
+  runs inline (a full sync can take minutes against 20k+ items).
+  `php artisan queue:work` has to actually be running for this to be
+  processed. Check progress via "5. Sync Logs" or "6. Sync Status".
+}

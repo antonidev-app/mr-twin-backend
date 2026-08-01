@@ -1,0 +1,28 @@
+meta {
+  name: 10. Upload Product Image
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{base_url}}/api/admin/products/{{item_id}}/images
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:multipart-form {
+  image: @file(/absolute/path/to/an/image.jpg)
+}
+
+docs {
+  Replace the @file(...) path with a real image on your machine before
+  sending — Bruno doesn't ship a sample file. Stores to
+  storage/app/public/products/{item_id}/... via the `public` disk
+  (needs `php artisan storage:link` once), appends the resulting URL
+  to product_display.images, creating the product_display row if it
+  doesn't exist yet.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 12. List All Orders
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{base_url}}/api/admin/orders?per_page=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+params:query {
+  status:
+  per_page: 20
+}
+
+docs {
+  Every customer's orders (unlike the customer-facing /api/orders,
+  which is scoped to whoever's token it is), with customer name/email
+  attached. Optional status filter (pending/completed/cancelled).
+}

@@ -19,14 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'customer' => \App\Http\Middleware\EnsureCustomer::class,
-        ]);
-
-        // These are internal utility routes with no UI/form yet (exercised
-        // via curl/Postman until the backoffice exists in Fase 2) — exempt
-        // from CSRF so manual testing doesn't need a token dance. Revisit
-        // once these are gated behind admin auth.
-        $middleware->validateCsrfTokens(except: [
-            'accurate/databases/select',
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

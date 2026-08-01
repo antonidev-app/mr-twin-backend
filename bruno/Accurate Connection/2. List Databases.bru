@@ -5,14 +5,20 @@ meta {
 }
 
 get {
-  url: {{base_url}}/accurate/databases
+  url: {{base_url}}/api/admin/accurate/databases
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
 }
 
 docs {
   Lists the Accurate databases (companies) accessible to the connected
-  account. Requires step 1 (Connect) to have been completed first.
+  account. Requires step 1 (Connect) to have been completed first, and
+  an admin token (run Admin > Login first) — this endpoint reads
+  connection state, so it moved under /api/admin once admin auth existed.
 
   Note the "id" of the database you want (e.g. 79304), then use it in
   "3. Select Database".

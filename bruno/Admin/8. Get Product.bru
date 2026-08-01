@@ -1,0 +1,20 @@
+meta {
+  name: 8. Get Product
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/admin/products/{{item_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  {{item_id}} here is a synced_items.id (the Accurate mirror row),
+  NOT a product_display.id like the public catalog's product_id.
+}

@@ -4,10 +4,12 @@ meta {
 }
 
 docs {
-  Admin-only utility endpoints for connecting mr-twin-backend to Accurate
-  Online. Unauthenticated for now (no backoffice/admin auth exists yet —
-  see PLANNING.md Fase 2) — must be gated behind admin auth before any
-  public deploy.
+  Connecting mr-twin-backend to Accurate Online. "1. Connect" and its
+  callback stay unauthenticated by design (full-page browser redirect,
+  can't carry a Bearer token — the real gate is Accurate's own login).
+  Steps 2-4 read/change connection state and require an admin token —
+  run Admin > Login first and this folder's requests will pick up
+  {{admin_token}} automatically.
 
   Flow order: Connect (browser) → List Databases → Select Database →
   Connection Status.

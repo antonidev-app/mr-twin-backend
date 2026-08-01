@@ -1,0 +1,22 @@
+meta {
+  name: 5. Sync Logs
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/admin/sync/logs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Paginated history from sync_logs, newest first — type (items/
+  categories), status (running/success/failed), synced_count,
+  error_message, started_at/finished_at. One row per job attempt
+  (scheduled, CLI, or triggered from here).
+}

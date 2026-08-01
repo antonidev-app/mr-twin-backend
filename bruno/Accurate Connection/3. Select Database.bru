@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: {{base_url}}/accurate/databases/select
+  url: {{base_url}}/api/admin/accurate/databases/select
   body: formUrlEncoded
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
 }
 
 body:form-urlencoded {
@@ -20,4 +24,6 @@ docs {
   session (x-session-id + host) against it. After this succeeds, the
   sync commands (accurate:sync-categories, accurate:sync-items) and the
   checkout live-stock check can talk to Accurate.
+
+  Needs an admin token (run Admin > Login first).
 }

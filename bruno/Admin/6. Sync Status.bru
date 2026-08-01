@@ -1,0 +1,21 @@
+meta {
+  name: 6. Sync Status
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/admin/sync/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Quick summary: total rows in synced_items/synced_categories, plus
+  the most recent sync_logs row per type. Good for a backoffice
+  dashboard tile without paging through the full log.
+}

@@ -1,0 +1,31 @@
+meta {
+  name: 14. Update Order Status
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{base_url}}/api/admin/orders/{{order_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "completed"
+  }
+}
+
+docs {
+  Only pending/completed/cancelled are accepted (422 otherwise) — this
+  is the only place an order's status ever changes; checkout always
+  creates it as "pending".
+}

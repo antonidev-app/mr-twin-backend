@@ -5,13 +5,19 @@ meta {
 }
 
 get {
-  url: {{base_url}}/accurate/status
+  url: {{base_url}}/api/admin/accurate/status
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
 }
 
 docs {
   Reports connected (bool), id_db, db_alias, token_expires_at,
   last_refreshed_at, and last_refresh_error. Safe to call anytime to
   check whether the OAuth connection is healthy or needs reconnecting.
+
+  Needs an admin token (run Admin > Login first).
 }
