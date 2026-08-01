@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+    protected const RELATED_LIMIT = 8;
+
     public function index(Request $request)
     {
         $validated = $request->validate([
@@ -42,6 +44,26 @@ class ProductController extends Controller
         abort_unless($product->is_published, 404);
 
         return new ProductResource($product->load('item'));
+    }
+
+    public function related(ProductDisplay $product)
+    {
+        abort_unless($product->is_published, 404);
+
+        if (! $product->display_category) {
+            return ProductResource::collection(collect());
+        }
+
+        $related = ProductDisplay::query()
+            ->with('item')
+            ->where('is_published', true)
+            ->where('display_category', $product->display_category)
+            ->where('id', '!=', $product->id)
+            ->orderBy('sort_order')
+            ->limit(self::RELATED_LIMIT)
+            ->get();
+
+        return ProductResource::collection($related);
     }
 
     public function categories()

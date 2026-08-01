@@ -1,0 +1,19 @@
+meta {
+  name: Get Related Products
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/catalog/products/{{product_id}}/related
+  body: none
+  auth: none
+}
+
+docs {
+  {{product_id}} is a product_display.id, same as "Get Product". Returns
+  other published products with the same display_category (max 8,
+  ordered by sort_order), excluding this product itself. Returns
+  {"data": []} if the product has no display_category set. 404s under
+  the same conditions as "Get Product" (unpublished/nonexistent).
+}

@@ -99,6 +99,7 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 | GET | `/accurate/callback` | none | OAuth redirect target |
 | GET | `/api/catalog/products` | none | filter: `display_category`, `brand`, `min_price`, `max_price`, `q` |
 | GET | `/api/catalog/products/{id}` | none | 404 if unpublished |
+| GET | `/api/catalog/products/{id}/related` | none | other published products, same `display_category`, max 8 |
 | GET | `/api/catalog/categories` | none | distinct `display_category` in use |
 | POST | `/api/auth/register` | none | returns Sanctum token |
 | POST | `/api/auth/login` | none | returns Sanctum token |

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('catalog')->group(function () {
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/{product}', [ProductController::class, 'show']);
+    Route::get('products/{product}/related', [ProductController::class, 'related']);
     Route::get('categories', [ProductController::class, 'categories']);
 });
 
