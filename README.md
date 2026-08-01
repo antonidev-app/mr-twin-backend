@@ -103,6 +103,7 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 - **`product_display`** — the curation layer (1:1 with `synced_items`). `is_published` gates storefront visibility; `display_category`/`brand` are admin-curated overrides, deliberately decoupled from Accurate's raw (deeply nested, ERP-messy) category tree.
 - **`local_orders` / `local_order_items`** — 100% local. Checkout never calls any Accurate write endpoint (`save.do`/`delete.do`); it only reads live stock via `item/detail.do` before creating the order, and snapshots item name/SKU/price at order time so historical orders don't shift if the synced item changes later.
 - **`customers` vs `users`** — intentionally separate tables/models. `users` is the admin/backoffice identity; `customers` is the storefront identity. Both can hold Sanctum tokens; a custom `EnsureCustomer` middleware is what actually keeps the two from being usable interchangeably.
+- **JSON error responses are always `{"message": "..."}`**, regardless of `APP_DEBUG` — `bootstrap/app.php`'s `withExceptions` strips Laravel's default `exception`/`file`/`trace` keys before they reach any API client, since leaking internal file paths and stack traces to a public API is a real issue, not just a cosmetic one. Full traces still land in `storage/logs/laravel.log` as usual.
 
 Full rationale for all of the above lives in [`PLANNING.md`](../PLANNING.md).
 
