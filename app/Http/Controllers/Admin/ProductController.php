@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\Ai\AiEnrichmentException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\ProductAdminResource;
 use App\Models\ProductDisplay;
 use App\Models\SyncedItem;
+use App\Services\Ai\OpenAiClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -67,6 +69,17 @@ class ProductController extends Controller
         ProductDisplay::query()->updateOrCreate(['item_id' => $item->id], $validated);
 
         return new ProductAdminResource($item->fresh('productDisplay'));
+    }
+
+    public function aiDraft(SyncedItem $item, OpenAiClient $client)
+    {
+        try {
+            $draft = $client->draftProduct($item);
+        } catch (AiEnrichmentException $e) {
+            return response()->json(['message' => $e->getMessage()], 502);
+        }
+
+        return response()->json($draft);
     }
 
     public function uploadImage(Request $request, SyncedItem $item)

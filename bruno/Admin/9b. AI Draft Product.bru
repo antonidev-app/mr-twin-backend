@@ -1,0 +1,25 @@
+meta {
+  name: 9b. AI Draft Product
+  type: http
+  seq: 9.5
+}
+
+post {
+  url: {{base_url}}/api/admin/products/{{item_id}}/ai-draft
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+docs {
+  Calls OpenAI (web search + structured outputs) to draft display_name,
+  description, display_category, and brand for this item based on its
+  Accurate name/SKU/type — plus the source URLs it used for research.
+  Returns the draft only; nothing is persisted. Feed the result into
+  "9. Update Product" (after admin review/edit) to actually save it.
+  Requires OPENAI_API_KEY in .env. Returns 502 with a message on
+  upstream failure.
+}

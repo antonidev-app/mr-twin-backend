@@ -62,6 +62,7 @@ Route::prefix('admin')->group(function () {
             Route::get('/', [AdminProductController::class, 'index']);
             Route::get('{item}', [AdminProductController::class, 'show']);
             Route::put('{item}', [AdminProductController::class, 'update']);
+            Route::post('{item}/ai-draft', [AdminProductController::class, 'aiDraft']);
             Route::post('{item}/images', [AdminProductController::class, 'uploadImage']);
             Route::delete('{item}/images', [AdminProductController::class, 'deleteImage']);
         });

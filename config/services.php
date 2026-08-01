@@ -45,4 +45,9 @@ return [
         'session_ttl_minutes' => (int) env('ACCURATE_SESSION_TTL_MINUTES', 25),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-5.1'),
+    ],
+
 ];

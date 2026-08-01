@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Accurate\AccurateClient;
+use App\Services\Ai\OpenAiClient;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
                 scopes: $config['scopes'],
                 tokenExpiryBuffer: $config['token_expiry_buffer_seconds'],
                 sessionTtlMinutes: $config['session_ttl_minutes'],
+            );
+        });
+
+        $this->app->singleton(OpenAiClient::class, function () {
+            $config = config('services.openai');
+
+            return new OpenAiClient(
+                apiKey: $config['api_key'] ?? '',
+                model: $config['model'],
             );
         });
     }

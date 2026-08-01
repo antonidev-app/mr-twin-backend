@@ -31,6 +31,7 @@ Edit `.env`:
 - `ACCURATE_CLIENT_ID` / `ACCURATE_CLIENT_SECRET` — from your Accurate developer app
 - `ACCURATE_REDIRECT_URI` — must exactly match the OAuth callback URL registered in Accurate's developer dashboard (protocol, host, and port all have to match — e.g. `http://localhost:8000/accurate/callback` if you run `php artisan serve` on the default port)
 - `ACCURATE_SCOPES` — space-separated. At minimum `item_view item_category_view` (the project's two sync jobs need both; `item_category_view` is a separate scope from `item_view` even though it's still item-related — this isn't obvious from Accurate's public docs, only from the scope list in your own Accurate developer app dashboard)
+- `OPENAI_API_KEY` — only needed for the "AI Product Draft" curation feature (`POST /api/admin/products/{item}/ai-draft`); everything else works without it. `OPENAI_MODEL` defaults to a model with web search + Structured Outputs support — check platform.openai.com/docs for the current recommended model if the default stops working.
 
 Then:
 
@@ -79,6 +80,8 @@ Both jobs are also scheduled every 30 minutes (`routes/console.php`) once `php a
 
 Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untouched by curation. Nothing is customer-visible until an admin publishes it via `product_display`, through `GET/PUT /api/admin/products/{item}` and `POST/DELETE /api/admin/products/{item}/images` (admin token) — a proper curation UI is `mr-twin-backoffice`'s job, not built in this repo.
 
+`POST /api/admin/products/{item}/ai-draft` (admin token) can draft `display_name`/`description`/`display_category`/`brand` for a single item by asking OpenAI to research it (web search + Structured Outputs, `App\Services\Ai\OpenAiClient`) — it only returns the draft, it never writes to `product_display` itself, so it's safe to call speculatively and just discard the result.
+
 ## API documentation (Bruno)
 
 The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) collection covering every endpoint in this API — open it directly in the Bruno app (`Open Collection` → select the `bruno` folder). It's plain text and lives in git, so it stays in sync with the code instead of drifting like a wiki page would.
@@ -112,6 +115,7 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 | GET | `/api/admin/sync/logs`, `/status` | admin token | `sync_logs` history / latest-per-type summary |
 | GET | `/api/admin/products` | admin token | all `synced_items` incl. unpublished, filter `q`/`is_published`/`suspended`/`item_type` |
 | GET/PUT | `/api/admin/products/{item}` | admin token | curation fields (`is_published`, `display_name`, ...) — upserts `product_display` |
+| POST | `/api/admin/products/{item}/ai-draft` | admin token | OpenAI-drafted curation fields + sources; returns draft only, nothing persisted |
 | POST/DELETE | `/api/admin/products/{item}/images` | admin token | multipart upload / remove by URL, disk `public` |
 | GET | `/api/admin/orders` | admin token | all orders, any customer, filter `status` |
 | GET/PATCH | `/api/admin/orders/{order}` | admin token | `PATCH` updates `status` (`pending`/`completed`/`cancelled`) |
