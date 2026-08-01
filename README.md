@@ -39,6 +39,16 @@ Then:
 php artisan migrate
 ```
 
+## Running tests
+
+The test suite runs against a real Postgres database, not SQLite — this project is Postgres-only (real Accurate data, `ilike`/`pg_trgm` search are Postgres-specific syntax that SQLite can't run), so testing against the same engine as production is the correct setup rather than a workaround. One-time setup:
+
+```bash
+createdb mr_twin_backend_testing
+```
+
+Then `php artisan test` — it reuses your `.env` Postgres host/user/password (only `DB_CONNECTION`/`DB_DATABASE` are overridden by `phpunit.xml`), runs full `RefreshDatabase` migrations against `mr_twin_backend_testing` per run, and never touches your real `mr_twin_backend` database.
+
 ## Admin account
 
 There's no public admin registration — create the first one via tinker:
@@ -97,7 +107,7 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 |---|---|---|---|
 | GET | `/accurate/connect` | none | browser-only, starts OAuth |
 | GET | `/accurate/callback` | none | OAuth redirect target |
-| GET | `/api/catalog/products` | none | filter: `display_category`, `brand`, `min_price`, `max_price`, `q` |
+| GET | `/api/catalog/products` | none | filter: `display_category`, `brand`, `min_price`, `max_price`, `q` (typo-tolerant via `pg_trgm`) |
 | GET | `/api/catalog/products/{id}` | none | 404 if unpublished |
 | GET | `/api/catalog/products/{id}/related` | none | other published products, same `display_category`, max 8 |
 | GET | `/api/catalog/categories` | none | distinct `display_category` in use |

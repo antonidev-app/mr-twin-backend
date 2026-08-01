@@ -24,7 +24,9 @@ docs {
   - display_category: exact match against product_display.display_category
   - brand: exact match against product_display.brand
   - min_price / max_price: filters on the underlying synced_items.unit_price
-  - q: case-insensitive search against display_name or the item's name
+  - q: case-insensitive search against display_name or the item's name —
+    also typo-tolerant via pg_trgm similarity (e.g. "vivobok" still finds
+    "Vivobook"), not just exact substring
   - per_page: 1-100, default 20
 
   Paginated response (Laravel's standard paginate() shape).

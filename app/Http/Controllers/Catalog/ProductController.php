@@ -28,8 +28,15 @@ class ProductController extends Controller
             ->when($validated['display_category'] ?? null, fn ($q, $v) => $q->where('display_category', $v))
             ->when($validated['brand'] ?? null, fn ($q, $v) => $q->where('brand', $v))
             ->when($validated['q'] ?? null, fn ($q, $term) => $q->where(function ($q) use ($term) {
+                // `<%` is pg_trgm's word-similarity operator: does `$term` fuzzy-match
+                // some word-boundary substring of the column, not the whole string.
+                // Plain `similarity()`/`%` compares the whole string and tanks on
+                // these products' raw ERP names (100+ chars, spec-stuffed) even for
+                // a one-letter typo — word_similarity is what actually works here.
                 $q->where('display_name', 'ilike', "%{$term}%")
-                    ->orWhereHas('item', fn ($q) => $q->where('name', 'ilike', "%{$term}%"));
+                    ->orWhereRaw('? <% display_name', [$term])
+                    ->orWhereHas('item', fn ($q) => $q->where('name', 'ilike', "%{$term}%")
+                        ->orWhereRaw('? <% name', [$term]));
             }))
             ->when($validated['min_price'] ?? null, fn ($q, $v) => $q->whereHas('item', fn ($q) => $q->where('unit_price', '>=', $v)))
             ->when($validated['max_price'] ?? null, fn ($q, $v) => $q->whereHas('item', fn ($q) => $q->where('unit_price', '<=', $v)))
