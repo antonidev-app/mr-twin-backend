@@ -92,6 +92,10 @@ Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untou
 
 `POST /api/admin/products/{item}/ai-draft` (admin token) can draft `display_name`/`description`/`display_category`/`brand` for a single item by asking OpenAI to research it (web search + Structured Outputs, `App\Services\Ai\OpenAiClient`) — it only returns the draft, it never writes to `product_display` itself, so it's safe to call speculatively and just discard the result.
 
+## Order status emails
+
+`PATCH /api/admin/orders/{order}` accepts `pending`/`processing`/`shipped`/`completed`/`cancelled`. When the status actually changes (a no-op PATCH with the same status doesn't), the customer is queued an email (`App\Mail\OrderStatusUpdatedMail`) via the same `database` queue the sync jobs use — `php artisan queue:work` needs to be running for it to actually go out, same requirement as syncing. Locally `MAIL_MAILER=log` (the default) writes the rendered email to `storage/logs/laravel.log` instead of a real inbox — no SMTP setup needed to see it working. `FRONTEND_URL` (default `http://localhost:5173`, `mr-twin-web`'s dev port) is used to build the "Lihat Detail Pesanan" link in the email.
+
 ## API documentation (Bruno)
 
 The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) collection covering every endpoint in this API — open it directly in the Bruno app (`Open Collection` → select the `bruno` folder). It's plain text and lives in git, so it stays in sync with the code instead of drifting like a wiki page would.
@@ -129,7 +133,7 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 | POST | `/api/admin/products/{item}/ai-draft` | admin token | OpenAI-drafted curation fields + sources; returns draft only, nothing persisted |
 | POST/DELETE | `/api/admin/products/{item}/images` | admin token | multipart upload / remove by URL, disk `public` |
 | GET | `/api/admin/orders` | admin token | all orders, any customer, filter `status` |
-| GET/PATCH | `/api/admin/orders/{order}` | admin token | `PATCH` updates `status` (`pending`/`completed`/`cancelled`) |
+| GET/PATCH | `/api/admin/orders/{order}` | admin token | `PATCH` updates `status` (`pending`/`processing`/`shipped`/`completed`/`cancelled`), queues a customer email on change |
 
 "customer token"/"admin token" mean a Sanctum bearer token issued to the `customers`/`users` table respectively — a token from the wrong table is rejected (403) by a dedicated `customer`/`admin` middleware, since Sanctum's `auth:sanctum` guard alone can't tell the two apart (it's polymorphic — it resolves whichever model actually owns the token, regardless of which guard name gated the route).
 

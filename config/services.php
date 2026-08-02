@@ -50,4 +50,6 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-5.1'),
     ],
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
 ];

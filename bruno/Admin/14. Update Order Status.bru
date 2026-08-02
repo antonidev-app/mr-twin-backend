@@ -25,7 +25,13 @@ body:json {
 }
 
 docs {
-  Only pending/completed/cancelled are accepted (422 otherwise) — this
-  is the only place an order's status ever changes; checkout always
-  creates it as "pending".
+  Only pending/processing/shipped/completed/cancelled are accepted (422
+  otherwise) — this is the only place an order's status ever changes;
+  checkout always creates it as "pending".
+
+  If the status actually changes (no-op PATCHes with the same status
+  don't), the customer is queued an email (App\Mail\OrderStatusUpdatedMail)
+  via the `database` queue — needs `php artisan queue:work` running to
+  actually be delivered. Locally with MAIL_MAILER=log the rendered email
+  lands in storage/logs/laravel.log instead of a real inbox.
 }
