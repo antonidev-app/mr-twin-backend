@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Exceptions\Accurate\AccurateException;
+use App\Exceptions\Payment\MidtransException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\LocalOrder;
 use App\Models\ProductDisplay;
 use App\Services\Accurate\AccurateClient;
+use App\Services\Payment\MidtransClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,9 +17,10 @@ use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
-    public function __construct(protected AccurateClient $accurateClient)
-    {
-    }
+    public function __construct(
+        protected AccurateClient $accurateClient,
+        protected MidtransClient $midtransClient,
+    ) {}
 
     public function index(Request $request)
     {
@@ -98,6 +101,7 @@ class OrderController extends Controller
                 'customer_id' => $customer->id,
                 'order_number' => 'ORD-'.strtoupper(Str::ulid()),
                 'status' => 'pending',
+                'payment_status' => 'unpaid',
                 'total_amount' => collect($lineItems)->sum(fn ($li) => $li['unit_price'] * $li['quantity']),
                 'shipping_name' => $validated['shipping_name'],
                 'shipping_phone' => $validated['shipping_phone'],
@@ -118,6 +122,36 @@ class OrderController extends Controller
             return $order;
         });
 
+        // Midtrans is a slow external call — deliberately outside the DB
+        // transaction (same rationale as the stock check above). The order
+        // already exists either way; a failure here just means the customer
+        // retries payment via POST /orders/{order}/pay instead of paying
+        // immediately.
+        $this->issuePaymentToken($order);
+
         return new OrderResource($order->load('items'));
+    }
+
+    public function pay(Request $request, LocalOrder $order)
+    {
+        abort_unless($order->customer_id === $request->user()->id, 404);
+
+        if ($order->payment_status === 'paid') {
+            return response()->json(['message' => 'Order sudah dibayar.'], 422);
+        }
+
+        $this->issuePaymentToken($order);
+
+        return new OrderResource($order->load('items'));
+    }
+
+    protected function issuePaymentToken(LocalOrder $order): void
+    {
+        try {
+            $token = $this->midtransClient->createSnapTransaction($order->load('customer'));
+            $order->update(['snap_token' => $token]);
+        } catch (MidtransException $e) {
+            Log::error('checkout.payment_token_failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
     }
 }

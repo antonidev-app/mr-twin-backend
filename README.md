@@ -32,6 +32,7 @@ Edit `.env`:
 - `ACCURATE_REDIRECT_URI` — must exactly match the OAuth callback URL registered in Accurate's developer dashboard (protocol, host, and port all have to match — e.g. `http://localhost:8000/accurate/callback` if you run `php artisan serve` on the default port)
 - `ACCURATE_SCOPES` — space-separated. At minimum `item_view item_category_view` (the project's two sync jobs need both; `item_category_view` is a separate scope from `item_view` even though it's still item-related — this isn't obvious from Accurate's public docs, only from the scope list in your own Accurate developer app dashboard)
 - `OPENAI_API_KEY` — only needed for the "AI Product Draft" curation feature (`POST /api/admin/products/{item}/ai-draft`); everything else works without it. `OPENAI_MODEL` defaults to a model with web search + Structured Outputs support — check platform.openai.com/docs for the current recommended model if the default stops working.
+- `MIDTRANS_SERVER_KEY` / `MIDTRANS_CLIENT_KEY` — from a **sandbox** Midtrans account (dashboard.sandbox.midtrans.com → Settings → Access Keys); checkout still works without these (the order is created either way), it just won't have a `snap_token` to actually pay with. `MIDTRANS_IS_PRODUCTION` stays `false` for sandbox. `mr-twin-web` needs the matching `PUBLIC_MIDTRANS_CLIENT_KEY` in its own `.env` (see that repo's README) — the client key is meant to be public, only the server key is secret.
 
 Then:
 
@@ -94,7 +95,17 @@ Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untou
 
 ## Order status emails
 
-`PATCH /api/admin/orders/{order}` accepts `pending`/`processing`/`shipped`/`completed`/`cancelled`. When the status actually changes (a no-op PATCH with the same status doesn't), the customer is queued an email (`App\Mail\OrderStatusUpdatedMail`) via the same `database` queue the sync jobs use — `php artisan queue:work` needs to be running for it to actually go out, same requirement as syncing. Locally `MAIL_MAILER=log` (the default) writes the rendered email to `storage/logs/laravel.log` instead of a real inbox — no SMTP setup needed to see it working. `FRONTEND_URL` (default `http://localhost:5173`, `mr-twin-web`'s dev port) is used to build the "Lihat Detail Pesanan" link in the email.
+`PATCH /api/admin/orders/{order}` accepts `pending`/`processing`/`shipped`/`completed`/`cancelled`. Any time an order's status actually changes — whether from this endpoint or from the Midtrans webhook below — `App\Observers\LocalOrderObserver` queues an email (`App\Mail\OrderStatusUpdatedMail`) via the same `database` queue the sync jobs use (a no-op update with the same status doesn't re-trigger it). `php artisan queue:work` needs to be running for it to actually go out, same requirement as syncing. Locally `MAIL_MAILER=log` (the default) writes the rendered email to `storage/logs/laravel.log` instead of a real inbox — no SMTP setup needed to see it working. `FRONTEND_URL` (default `http://localhost:5173`, `mr-twin-web`'s dev port) is used to build the "Lihat Detail Pesanan" link in the email.
+
+## Payments (Midtrans)
+
+Checkout (`POST /api/orders`) creates the order (`payment_status: unpaid`) first, then asks Midtrans for a Snap payment token — the order exists either way, even if the Midtrans call fails (`snap_token` just comes back `null`, and the customer can retry via `POST /api/orders/{order}/pay`). The frontend never trusts its own popup callback for "did it work" — only `POST /api/webhooks/midtrans` (signature-verified with `hash_equals()`, idempotent via the `webhook_events` table) is allowed to flip `payment_status`/mark the order `processing`.
+
+Two things you need for this to work locally, beyond the sandbox keys mentioned above:
+- **Midtrans needs to reach your webhook** — `http://localhost:8000` isn't reachable from Midtrans's servers, so point your sandbox dashboard's payment notification URL at a tunnel (e.g. `ngrok http 8000`, then set the notification URL to `https://<your-ngrok-subdomain>.ngrok-free.app/api/webhooks/midtrans` in dashboard.sandbox.midtrans.com → Settings → Configuration).
+- `php artisan queue:work` running — the same order-status-email path above fires once the webhook marks an order paid.
+
+Without a working webhook you can still see everything except the final `paid` state: the order gets created, the Snap popup opens with real sandbox test cards, but `payment_status` will stay `unpaid` until the webhook actually lands.
 
 ## API documentation (Bruno)
 
@@ -120,7 +131,9 @@ The [`bruno/`](./bruno) folder is a full [Bruno](https://www.usebruno.com) colle
 | POST | `/api/auth/logout` | customer token | revokes current token |
 | GET | `/api/orders` | customer token | own orders only |
 | GET | `/api/orders/{id}` | customer token | 404 if not the owner |
-| POST | `/api/orders` | customer token | checkout — live Accurate stock check, server-side pricing |
+| POST | `/api/orders` | customer token | checkout — live Accurate stock check, server-side pricing, issues a Midtrans Snap token |
+| POST | `/api/orders/{id}/pay` | customer token | (re)issue a Snap token when `payment_status` isn't `paid` yet |
+| POST | `/api/webhooks/midtrans` | none — signature-verified | Midtrans payment notifications, idempotent |
 | POST | `/api/admin/login` | none | returns Sanctum token |
 | POST | `/api/admin/logout` | admin token | revokes current token |
 | GET | `/api/admin/accurate/databases` | admin token | list Accurate databases |

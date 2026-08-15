@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AdminOrderResource;
-use App\Mail\OrderStatusUpdatedMail;
 use App\Models\LocalOrder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -42,12 +40,7 @@ class OrderController extends Controller
         ]);
 
         $order->update($validated);
-        $order->load(['items', 'customer']);
 
-        if ($order->wasChanged('status')) {
-            Mail::to($order->customer->email)->queue(new OrderStatusUpdatedMail($order));
-        }
-
-        return new AdminOrderResource($order);
+        return new AdminOrderResource($order->load(['items', 'customer']));
     }
 }

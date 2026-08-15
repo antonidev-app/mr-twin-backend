@@ -12,6 +12,7 @@ class LocalOrder extends Model
     {
         return [
             'total_amount' => 'decimal:2',
+            'paid_at' => 'datetime',
         ];
     }
 

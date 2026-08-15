@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\SyncController as AdminSyncController;
 use App\Http\Controllers\Auth\CustomerAuthController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Customer\OrderController;
+use App\Http\Controllers\Webhooks\MidtransWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public catalog — read-only, no auth.
@@ -24,6 +25,9 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [CustomerAuthController::class, 'login']);
 });
 
+// Public payment gateway webhooks — verified by signature, not auth.
+Route::post('webhooks/midtrans', MidtransWebhookController::class)->middleware('throttle:30,1');
+
 // Customer-only — token must belong to a Customer, not an admin User.
 Route::middleware(['auth:sanctum', 'customer'])->group(function () {
     Route::post('auth/logout', [CustomerAuthController::class, 'logout']);
@@ -32,6 +36,7 @@ Route::middleware(['auth:sanctum', 'customer'])->group(function () {
         Route::get('/', [OrderController::class, 'index']);
         Route::post('/', [OrderController::class, 'store']);
         Route::get('{order}', [OrderController::class, 'show']);
+        Route::post('{order}/pay', [OrderController::class, 'pay']);
     });
 });
 

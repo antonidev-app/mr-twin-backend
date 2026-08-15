@@ -1,0 +1,23 @@
+meta {
+  name: Pay Order
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/orders/{{order_id}}/pay
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customer_token}}
+}
+
+docs {
+  (Re)issues a Midtrans Snap token for this order — use when Checkout
+  came back with `snap_token: null`, or the customer closed the Snap
+  popup without paying and wants to try again. 422 if the order's
+  `payment_status` is already `paid`. Same 404-not-403 ownership check
+  as "Get Order".
+}

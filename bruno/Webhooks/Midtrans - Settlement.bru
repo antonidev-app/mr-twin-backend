@@ -1,0 +1,48 @@
+meta {
+  name: Midtrans - Settlement
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/webhooks/midtrans
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "order_id": "{{order_number}}",
+    "status_code": "200",
+    "gross_amount": "150000.00",
+    "transaction_status": "settlement",
+    "payment_type": "bank_transfer",
+    "fraud_status": "accept",
+    "signature_key": "REPLACE_ME"
+  }
+}
+
+docs {
+  This is a signed payload — `signature_key` here is a placeholder and
+  will be rejected (403) as-is. Real Midtrans notifications compute it
+  as sha512(order_id + status_code + gross_amount + MIDTRANS_SERVER_KEY);
+  for manual testing, compute that yourself against your local
+  MIDTRANS_SERVER_KEY (e.g. via `php artisan tinker`) and paste the
+  result in, matching order_id/gross_amount to a real local_orders row
+  exactly (order_number, total_amount).
+
+  In practice this endpoint is exercised by Midtrans's sandbox
+  dashboard (simulate a real transaction end-to-end via a Snap
+  checkout) rather than by hand-crafting this request — that's the
+  more realistic test since it also validates the payload shape
+  Midtrans actually sends. This request is here mainly as a reference
+  for what that shape looks like.
+
+  Idempotent: the same order_id + transaction_status combination is
+  only ever applied once (see webhook_events table) — replaying this
+  exact request is safe and won't double-send the status-change email.
+}

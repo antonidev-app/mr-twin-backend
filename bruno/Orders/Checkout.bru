@@ -41,4 +41,10 @@ docs {
 
   product_id here is a product_display.id (see "Catalog > List
   Products"), not an Accurate item id or SKU.
+
+  After the order is created, this also asks Midtrans for a Snap
+  payment token (response field `snap_token`) — that call is outside
+  the order-creation transaction, so if Midtrans is unreachable the
+  order still gets created with `snap_token: null`; retry via
+  "Pay Order" below instead of re-checking out.
 }

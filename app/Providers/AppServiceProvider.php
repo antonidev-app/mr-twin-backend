@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\LocalOrder;
+use App\Observers\LocalOrderObserver;
 use App\Services\Accurate\AccurateClient;
 use App\Services\Ai\OpenAiClient;
+use App\Services\Payment\MidtransClient;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +38,16 @@ class AppServiceProvider extends ServiceProvider
                 model: $config['model'],
             );
         });
+
+        $this->app->singleton(MidtransClient::class, function () {
+            $config = config('services.midtrans');
+
+            return new MidtransClient(
+                serverKey: $config['server_key'] ?? '',
+                clientKey: $config['client_key'] ?? '',
+                isProduction: $config['is_production'],
+            );
+        });
     }
 
     /**
@@ -42,6 +55,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        LocalOrder::observe(LocalOrderObserver::class);
     }
 }
