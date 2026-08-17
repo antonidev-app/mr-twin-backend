@@ -29,6 +29,7 @@ class MidtransWebhookTest extends TestCase
             'order_number' => 'ORD-WEBHOOK-1',
             'status' => 'pending',
             'payment_status' => 'unpaid',
+            'midtrans_order_id' => 'ORD-WEBHOOK-1-abc12345',
             'total_amount' => 150000,
             'shipping_name' => $customer->name,
             'shipping_phone' => '081234567890',
@@ -39,7 +40,7 @@ class MidtransWebhookTest extends TestCase
     protected function signedPayload(LocalOrder $order, string $transactionStatus, ?string $fraudStatus = null): array
     {
         $payload = [
-            'order_id' => $order->order_number,
+            'order_id' => $order->midtrans_order_id,
             'status_code' => '200',
             'gross_amount' => (string) $order->total_amount,
             'transaction_status' => $transactionStatus,

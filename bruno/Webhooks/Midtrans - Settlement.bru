@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-    "order_id": "{{order_number}}",
+    "order_id": "{{midtrans_order_id}}",
     "status_code": "200",
     "gross_amount": "150000.00",
     "transaction_status": "settlement",
@@ -33,7 +33,14 @@ docs {
   for manual testing, compute that yourself against your local
   MIDTRANS_SERVER_KEY (e.g. via `php artisan tinker`) and paste the
   result in, matching order_id/gross_amount to a real local_orders row
-  exactly (order_number, total_amount).
+  exactly.
+
+  order_id here is `local_orders.midtrans_order_id` (e.g.
+  `ORD-01ABC...-a1b2c3d4`), NOT `order_number` — Midtrans permanently
+  ties order_id to one transaction attempt, so every checkout/retry
+  generates its own unique one (see README "Payments (Midtrans)"), and
+  the webhook looks the order up by whichever one was most recently
+  issued.
 
   In practice this endpoint is exercised by Midtrans's sandbox
   dashboard (simulate a real transaction end-to-end via a Snap

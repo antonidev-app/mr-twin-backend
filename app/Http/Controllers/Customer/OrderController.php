@@ -148,8 +148,11 @@ class OrderController extends Controller
     protected function issuePaymentToken(LocalOrder $order): void
     {
         try {
-            $token = $this->midtransClient->createSnapTransaction($order->load('customer'));
-            $order->update(['snap_token' => $token]);
+            $payment = $this->midtransClient->createSnapTransaction($order->load('customer'));
+            $order->update([
+                'snap_token' => $payment['token'],
+                'midtrans_order_id' => $payment['midtrans_order_id'],
+            ]);
         } catch (MidtransException $e) {
             Log::error('checkout.payment_token_failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
         }

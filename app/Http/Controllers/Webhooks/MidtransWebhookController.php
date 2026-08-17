@@ -36,7 +36,7 @@ class MidtransWebhookController extends Controller
             return response()->json(['message' => 'Already processed.']);
         }
 
-        $order = LocalOrder::where('order_number', $payload['order_id'])->first();
+        $order = LocalOrder::where('midtrans_order_id', $payload['order_id'])->first();
 
         if (! $order) {
             Log::error('midtrans.webhook.order_not_found', ['order_id' => $payload['order_id']]);

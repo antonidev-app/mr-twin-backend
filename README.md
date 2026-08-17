@@ -101,6 +101,8 @@ Synced data lands in `synced_items` / `synced_categories` — raw mirrors, untou
 
 Checkout (`POST /api/orders`) creates the order (`payment_status: unpaid`) first, then asks Midtrans for a Snap payment token — the order exists either way, even if the Midtrans call fails (`snap_token` just comes back `null`, and the customer can retry via `POST /api/orders/{order}/pay`). The frontend never trusts its own popup callback for "did it work" — only `POST /api/webhooks/midtrans` (signature-verified with `hash_equals()`, idempotent via the `webhook_events` table) is allowed to flip `payment_status`/mark the order `processing`.
 
+Every checkout/retry sends Midtrans a **freshly generated `order_id`** (`{order_number}-{random}`, stored as `local_orders.midtrans_order_id`) rather than reusing `order_number` directly — Midtrans permanently ties `order_id` to one transaction lifecycle and rejects re-creating a transaction for one it's already seen (`"order_id has already been taken"`), even once that prior attempt expired. The webhook looks the order up by `midtrans_order_id` (the most recent attempt), not `order_number`.
+
 Two things you need for this to work locally, beyond the sandbox keys mentioned above:
 - **Midtrans needs to reach your webhook** — `http://localhost:8000` isn't reachable from Midtrans's servers, so point your sandbox dashboard's payment notification URL at a tunnel (e.g. `ngrok http 8000`, then set the notification URL to `https://<your-ngrok-subdomain>.ngrok-free.app/api/webhooks/midtrans` in dashboard.sandbox.midtrans.com → Settings → Configuration).
 - `php artisan queue:work` running — the same order-status-email path above fires once the webhook marks an order paid.

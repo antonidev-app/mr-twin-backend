@@ -40,6 +40,29 @@ class OrderPaymentRetryTest extends TestCase
         $this->assertDatabaseHas('local_orders', ['id' => $order->id, 'snap_token' => 'fresh-token']);
     }
 
+    public function test_each_retry_uses_a_distinct_midtrans_order_id(): void
+    {
+        // Regression test: Midtrans permanently rejects re-creating a
+        // transaction for an order_id it's already seen ("order_id has
+        // already been taken"), even after that attempt expired — so every
+        // retry must send a fresh one, never the bare order_number twice.
+        Http::fake(['*/snap/v1/transactions' => Http::response(['token' => 'token-1'])]);
+
+        $customer = Customer::factory()->create();
+        $order = $this->makeOrder($customer);
+
+        $this->actingAs($customer, 'sanctum')->postJson("/api/orders/{$order->id}/pay");
+        $firstMidtransOrderId = $order->fresh()->midtrans_order_id;
+
+        Http::fake(['*/snap/v1/transactions' => Http::response(['token' => 'token-2'])]);
+        $this->actingAs($customer, 'sanctum')->postJson("/api/orders/{$order->id}/pay");
+        $secondMidtransOrderId = $order->fresh()->midtrans_order_id;
+
+        $this->assertNotNull($firstMidtransOrderId);
+        $this->assertNotSame($firstMidtransOrderId, $secondMidtransOrderId);
+        $this->assertStringStartsWith($order->order_number.'-', $firstMidtransOrderId);
+    }
+
     public function test_it_rejects_retry_when_already_paid(): void
     {
         $customer = Customer::factory()->create();

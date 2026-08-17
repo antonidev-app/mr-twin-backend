@@ -6,6 +6,7 @@ use App\Exceptions\Payment\MidtransException;
 use App\Models\LocalOrder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class MidtransClient
 {
@@ -15,15 +16,27 @@ class MidtransClient
         protected bool $isProduction,
     ) {}
 
-    public function createSnapTransaction(LocalOrder $order): string
+    /**
+     * Midtrans permanently ties an `order_id` to one transaction lifecycle —
+     * it rejects re-creating a transaction for an order_id that's already
+     * been used, even once that prior attempt has expired. So every attempt
+     * (checkout, and every retry via /pay) gets its own unique Midtrans
+     * order_id, distinct from our stable `order_number`; the caller is
+     * responsible for persisting the returned `midtrans_order_id` so the
+     * webhook can look the order back up by it.
+     *
+     * @return array{token: string, midtrans_order_id: string}
+     */
+    public function createSnapTransaction(LocalOrder $order): array
     {
         $grossAmount = (int) $order->total_amount;
+        $midtransOrderId = "{$order->order_number}-".Str::lower(Str::random(8));
 
         $response = Http::withBasicAuth($this->serverKey, '')
             ->withHeaders(['Accept' => 'application/json'])
             ->post("{$this->snapBaseUrl()}/snap/v1/transactions", [
                 'transaction_details' => [
-                    'order_id' => $order->order_number,
+                    'order_id' => $midtransOrderId,
                     'gross_amount' => $grossAmount,
                 ],
                 'customer_details' => [
@@ -53,7 +66,7 @@ class MidtransClient
             throw new MidtransException($json['error_messages'][0] ?? 'Midtrans request failed');
         }
 
-        return $json['token'];
+        return ['token' => $json['token'], 'midtrans_order_id' => $midtransOrderId];
     }
 
     public function verifySignature(array $payload): bool
