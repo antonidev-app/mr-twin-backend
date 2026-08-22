@@ -32,28 +32,42 @@ class MidtransClient
         $grossAmount = (int) $order->total_amount;
         $midtransOrderId = "{$order->order_number}-".Str::lower(Str::random(8));
 
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $midtransOrderId,
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $order->customer->name,
+                'email' => $order->customer->email,
+                'phone' => $order->shipping_phone,
+            ],
+            'item_details' => [[
+                'id' => $order->order_number,
+                'price' => $grossAmount,
+                'quantity' => 1,
+                'name' => "Pesanan {$order->order_number}",
+            ]],
+            'callbacks' => [
+                'finish' => rtrim(config('services.frontend_url'), '/')."/orders/{$order->id}",
+            ],
+        ];
+
+        // Tie the Snap page's own countdown to our order-level deadline, so a
+        // popup left open past `expires_at` can't still be used to pay —
+        // without this, retries would keep getting Midtrans's default 24h
+        // window regardless of how soon our own deadline actually is.
+        if ($order->expires_at !== null) {
+            $payload['expiry'] = [
+                'start_time' => now()->format('Y-m-d H:i:s O'),
+                'unit' => 'minutes',
+                'duration' => max(1, (int) ceil(now()->diffInSeconds($order->expires_at) / 60)),
+            ];
+        }
+
         $response = Http::withBasicAuth($this->serverKey, '')
             ->withHeaders(['Accept' => 'application/json'])
-            ->post("{$this->snapBaseUrl()}/snap/v1/transactions", [
-                'transaction_details' => [
-                    'order_id' => $midtransOrderId,
-                    'gross_amount' => $grossAmount,
-                ],
-                'customer_details' => [
-                    'first_name' => $order->customer->name,
-                    'email' => $order->customer->email,
-                    'phone' => $order->shipping_phone,
-                ],
-                'item_details' => [[
-                    'id' => $order->order_number,
-                    'price' => $grossAmount,
-                    'quantity' => 1,
-                    'name' => "Pesanan {$order->order_number}",
-                ]],
-                'callbacks' => [
-                    'finish' => rtrim(config('services.frontend_url'), '/')."/orders/{$order->id}",
-                ],
-            ]);
+            ->post("{$this->snapBaseUrl()}/snap/v1/transactions", $payload);
 
         $json = $response->json() ?? [];
 

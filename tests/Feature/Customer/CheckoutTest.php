@@ -4,6 +4,7 @@ namespace Tests\Feature\Customer;
 
 use App\Models\AccurateConnection;
 use App\Models\Customer;
+use App\Models\LocalOrder;
 use App\Models\ProductDisplay;
 use App\Models\SyncedItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,5 +92,36 @@ class CheckoutTest extends TestCase
         $response->assertCreated();
         $response->assertJsonPath('data.snap_token', null);
         $this->assertDatabaseHas('local_orders', ['payment_status' => 'unpaid']);
+    }
+
+    public function test_checkout_sets_a_payment_deadline_and_sends_a_matching_expiry_to_midtrans(): void
+    {
+        $this->seedAccurateConnection();
+        Http::fake([
+            '*/accurate/api/item/detail.do*' => Http::response(['s' => true, 'd' => ['availableToSell' => 10]]),
+            '*/snap/v1/transactions' => Http::response(['token' => 'snap-token-123']),
+        ]);
+
+        $customer = Customer::factory()->create();
+        $product = $this->makePublishedProduct(3, 100000);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/orders', $this->checkoutPayload($customer, $product));
+
+        $order = LocalOrder::firstOrFail();
+        $expectedMinutes = config('services.orders.payment_expiry_minutes');
+
+        $this->assertNotNull($order->expires_at);
+        $this->assertEqualsWithDelta(
+            now()->addMinutes($expectedMinutes)->timestamp,
+            $order->expires_at->timestamp,
+            5
+        );
+
+        Http::assertSent(function ($request) use ($expectedMinutes) {
+            return str_contains($request->url(), 'snap/v1/transactions')
+                && ($request['expiry']['unit'] ?? null) === 'minutes'
+                && ($request['expiry']['duration'] ?? null) === $expectedMinutes;
+        });
     }
 }

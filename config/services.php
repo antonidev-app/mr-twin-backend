@@ -58,4 +58,8 @@ return [
         'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
     ],
 
+    'orders' => [
+        'payment_expiry_minutes' => (int) env('ORDER_PAYMENT_EXPIRY_MINUTES', 60),
+    ],
+
 ];

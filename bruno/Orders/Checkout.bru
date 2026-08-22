@@ -47,4 +47,9 @@ docs {
   the order-creation transaction, so if Midtrans is unreachable the
   order still gets created with `snap_token: null`; retry via
   "Pay Order" below instead of re-checking out.
+
+  Response also includes `expires_at` — the payment deadline, set to
+  now + ORDER_PAYMENT_EXPIRY_MINUTES (default 60min). Past that,
+  "Pay Order" starts returning 422. The Snap token's own expiry is
+  set to match, so the popup dies at the same time too.
 }

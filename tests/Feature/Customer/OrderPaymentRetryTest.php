@@ -73,6 +73,18 @@ class OrderPaymentRetryTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_it_rejects_retry_and_marks_expired_once_past_the_order_deadline(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = $this->makeOrder($customer);
+        $order->update(['expires_at' => now()->subMinute()]);
+
+        $response = $this->actingAs($customer, 'sanctum')->postJson("/api/orders/{$order->id}/pay");
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('local_orders', ['id' => $order->id, 'payment_status' => 'expired']);
+    }
+
     public function test_it_404s_for_a_non_owned_order(): void
     {
         $owner = Customer::factory()->create();

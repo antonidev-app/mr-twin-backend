@@ -102,6 +102,7 @@ class OrderController extends Controller
                 'order_number' => 'ORD-'.strtoupper(Str::ulid()),
                 'status' => 'pending',
                 'payment_status' => 'unpaid',
+                'expires_at' => now()->addMinutes(config('services.orders.payment_expiry_minutes')),
                 'total_amount' => collect($lineItems)->sum(fn ($li) => $li['unit_price'] * $li['quantity']),
                 'shipping_name' => $validated['shipping_name'],
                 'shipping_phone' => $validated['shipping_phone'],
@@ -138,6 +139,19 @@ class OrderController extends Controller
 
         if ($order->payment_status === 'paid') {
             return response()->json(['message' => 'Order sudah dibayar.'], 422);
+        }
+
+        // App-level deadline, checked independently of the Midtrans webhook
+        // (which only flips payment_status to 'expired' once ITS OWN
+        // transaction expiry fires — see custom `expiry` set below). This
+        // guard closes the gap where the webhook hasn't landed yet but the
+        // order's own deadline has already passed.
+        if ($order->isExpired()) {
+            if ($order->payment_status !== 'expired') {
+                $order->update(['payment_status' => 'expired']);
+            }
+
+            return response()->json(['message' => 'Batas waktu pembayaran pesanan ini sudah lewat.'], 422);
         }
 
         $this->issuePaymentToken($order);

@@ -18,6 +18,7 @@ class AdminOrderResource extends JsonResource
             'payment_status' => $this->payment_status,
             'payment_method' => $this->payment_method,
             'paid_at' => $this->paid_at?->toIso8601String(),
+            'expires_at' => $this->expires_at?->toIso8601String(),
             'total_amount' => (float) $this->total_amount,
             'shipping_name' => $this->shipping_name,
             'shipping_phone' => $this->shipping_phone,

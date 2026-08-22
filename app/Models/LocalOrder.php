@@ -13,7 +13,13 @@ class LocalOrder extends Model
         return [
             'total_amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
     public function customer()

@@ -33,6 +33,7 @@ Edit `.env`:
 - `ACCURATE_SCOPES` — space-separated. At minimum `item_view item_category_view` (the project's two sync jobs need both; `item_category_view` is a separate scope from `item_view` even though it's still item-related — this isn't obvious from Accurate's public docs, only from the scope list in your own Accurate developer app dashboard)
 - `OPENAI_API_KEY` — only needed for the "AI Product Draft" curation feature (`POST /api/admin/products/{item}/ai-draft`); everything else works without it. `OPENAI_MODEL` defaults to a model with web search + Structured Outputs support — check platform.openai.com/docs for the current recommended model if the default stops working.
 - `MIDTRANS_SERVER_KEY` / `MIDTRANS_CLIENT_KEY` — from a **sandbox** Midtrans account (dashboard.sandbox.midtrans.com → Settings → Access Keys); checkout still works without these (the order is created either way), it just won't have a `snap_token` to actually pay with. `MIDTRANS_IS_PRODUCTION` stays `false` for sandbox. `mr-twin-web` needs the matching `PUBLIC_MIDTRANS_CLIENT_KEY` in its own `.env` (see that repo's README) — the client key is meant to be public, only the server key is secret.
+- `ORDER_PAYMENT_EXPIRY_MINUTES` — how long a freshly checked-out order stays payable, in minutes (default `60`). Once past `local_orders.expires_at`, `POST /api/orders/{order}/pay` returns 422 and marks the order `expired` — enforced app-side, independent of Midtrans's own webhook.
 
 Then:
 
